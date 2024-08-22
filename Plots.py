@@ -50,9 +50,21 @@ class StockApp(tk.Tk):
         # Create revenue thumbnail
         self.create_thumbnail('Revenue', df['Date'], df['Revenue'], 1, 0, df)
         # Create free cash flow thumbnail
-        self.create_thumbnail('Free Cash Flow', df['Date'], df['Free Cash Flow'], 1, 1, df)
+        self.create_thumbnail('Free Cash Flow', df['Date'], df['Free Cash Flow'], 1, 2, df)
         # Create debt thumbnail
-        self.create_thumbnail('Debt', df['Date'], df['Debt'], 1, 2, df)
+        self.create_thumbnail('EPS Diluted', df['Date'], df['EPS Diluted'], 1, 1, df)
+
+        self.create_thumbnail('Debt', df['Date'], df['Debt'], 3, 5, df)
+
+        self.create_thumbnail('Dividends', df['Date'], df['Dividends'], 1, 5, df)
+
+        self.create_thumbnail('Dividends PS Growth', df['Date'], df['Dividends PS Growth'], 2, 5, df)
+
+        self.create_thumbnail('Revenue Growth', df['Date'], df['Revenue Growth'], 2, 0, df)
+
+        self.create_thumbnail('EPS Diluted Growth', df['Date'], df['EPS Diluted Growth'], 2, 1, df)
+
+        self.create_thumbnail('Free Cash Flow Growth', df['Date'], df['Free Cash Flow Growth'], 2, 2, df)
 
     def create_thumbnail(self, name, x, y, row, column, df):
         fig = Figure(figsize=(3, 2), dpi=100)
@@ -88,9 +100,24 @@ class StockApp(tk.Tk):
         elif title == 'Free Cash Flow':
             ax.bar(df['Date'], df['Free Cash Flow'])
             ax.set_title('Free Cash Flow')
+        elif title == 'EPS Diluted':
+            ax.bar(df['Date'], df['EPS Diluted'])
+            ax.set_title('EPS Diluted')
+        elif title == 'Dividends':
+            ax.bar(df['Date'], df['Dividends'])
+            ax.set_title('Dividends')
         elif title == 'Debt':
             ax.bar(df['Date'], df['Debt'])
             ax.set_title('Debt')
+        elif title == 'Debt':
+            ax.bar(df['Date'], df['Revenue Growth'])
+            ax.set_title('Revenue Growth')
+        elif title == 'Debt':
+            ax.bar(df['Date'], df['EPS Diluted Growth'])
+            ax.set_title('EPS Diluted Growth')
+        elif title == 'Debt':
+            ax.bar(df['Date'], df['Free Cash Flow Growth'])
+            ax.set_title('Free Cash Flow Growth Growth')
 
         # Create a canvas and add the plot to the new window
         canvas = FigureCanvasTkAgg(fig, master=expanded_window)
@@ -114,14 +141,26 @@ class StockApp(tk.Tk):
         self.ticker = self.ticker_entry.get()
 
         revenue = SA.call_api_single(self.ticker, "revenue", 10)["data"]
+        revenue_growth = SA.call_api_single(self.ticker, "revenue_growth", 10)["data"]
         fcf = SA.call_api_single(self.ticker, "fcf", 10)["data"]
+        fcf_growth = SA.call_api_single(self.ticker, "fcf_growth", 10)["data"]
         debt = SA.call_api_single(self.ticker, "st_debt", 10)["data"]
+        eps_diluted = SA.call_api_single(self.ticker, "eps_diluted", 10)["data"]
+        eps_diluted_growth = SA.call_api_single(self.ticker, "eps_diluted_growth", 10)["data"]
+        dividends = SA.call_api_single(self.ticker, "dividends", 10)["data"]
+        dividends_ps_growth = SA.call_api_single(self.ticker, "dividends_per_share_growth", 10)["data"]
 
         data = {
             "Date": ["2014", "2015", "2016", "2017", "2018", "2019", "2020", "2021", "2022", "2023"],
             "Revenue": revenue,
+            "Revenue Growth": revenue_growth,
             "Free Cash Flow": fcf,
-            "Debt": debt
+            "Free Cash Flow Growth": fcf_growth,
+            "Debt": debt,
+            "EPS Diluted": eps_diluted,
+            "EPS Diluted Growth": eps_diluted_growth,
+            "Dividends": dividends,
+            "Dividends PS Growth": dividends_ps_growth,
         }
 
         df = pd.DataFrame(data)

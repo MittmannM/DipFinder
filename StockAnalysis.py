@@ -20,7 +20,3 @@ def call_api_single(ticker, metric, period):
     response = requests.get(url, headers=headers)
 
     return response.json()
-
-
-revenue = call_api_single(ticker, "revenue", 10)["data"]
-
