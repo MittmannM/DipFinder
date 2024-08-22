@@ -57,8 +57,11 @@ class StockApp(tk.Tk):
     def create_thumbnail(self, name, x, y, row, column, df):
         fig = Figure(figsize=(3, 2), dpi=100)
         ax = fig.add_subplot(111)
-        ax.plot(x[::2], y[::2])
+        ax.bar(x, y, width=0.9, align='center')
         ax.set_title(name)
+
+        # Adjust the x-axis to show only every second year
+        ax.set_xticks(x[::2])
 
         canvas = FigureCanvasTkAgg(fig, master=self.home_frame)
         canvas_widget = canvas.get_tk_widget()
@@ -80,13 +83,13 @@ class StockApp(tk.Tk):
                      dpi=100)
         ax = fig.add_subplot(111)
         if title == 'Revenue':
-            ax.plot(df['Date'], df['Revenue'])
+            ax.bar(df['Date'], df['Revenue'])
             ax.set_title('Revenue')
         elif title == 'Free Cash Flow':
-            ax.plot(df['Date'], df['Free Cash Flow'])
+            ax.bar(df['Date'], df['Free Cash Flow'])
             ax.set_title('Free Cash Flow')
         elif title == 'Debt':
-            ax.plot(df['Date'], df['Debt'])
+            ax.bar(df['Date'], df['Debt'])
             ax.set_title('Debt')
 
         # Create a canvas and add the plot to the new window
@@ -100,7 +103,7 @@ class StockApp(tk.Tk):
     def plot_expanded_graph(self, x, y, title):
         fig = Figure(figsize=(6, 4), dpi=100)
         ax = fig.add_subplot(111)
-        ax.plot(x, y)
+        ax.bar(x, y, width=100, align='center')
         ax.set_title(title)
 
         canvas = FigureCanvasTkAgg(fig, master=self.expanded_frame)
@@ -115,7 +118,7 @@ class StockApp(tk.Tk):
         debt = SA.call_api_single(self.ticker, "st_debt", 10)["data"]
 
         data = {
-            "Date": pd.date_range(start='2014', periods=10),
+            "Date": ["2014", "2015", "2016", "2017", "2018", "2019", "2020", "2021", "2022", "2023"],
             "Revenue": revenue,
             "Free Cash Flow": fcf,
             "Debt": debt
