@@ -79,7 +79,7 @@ class StockApp(tk.Tk):
         canvas_widget = canvas.get_tk_widget()
         canvas_widget.grid(row=row, column=column, padx=5, pady=5)
 
-        canvas_widget.bind("<Button-1>", lambda event, title=name: self.expand_graph(title, df))
+        canvas_widget.bind("<Button-1>", lambda event, title=name: self.expand_graph(name, df))
 
     def expand_graph(self, title, df):
         # Create a new top-level window for the expanded graph
@@ -117,7 +117,10 @@ class StockApp(tk.Tk):
             ax.set_title('EPS Diluted Growth')
         elif title == 'Debt':
             ax.bar(df['Date'], df['Free Cash Flow Growth'])
-            ax.set_title('Free Cash Flow Growth Growth')
+            ax.set_title('Free Cash Flow Growth')
+        elif title == 'Debt':
+            ax.bar(df['Date'], df['Dividends PS Growth'])
+            ax.set_title('Dividend Growth')
 
         # Create a canvas and add the plot to the new window
         canvas = FigureCanvasTkAgg(fig, master=expanded_window)
