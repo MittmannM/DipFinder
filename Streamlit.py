@@ -21,6 +21,12 @@ def dl_yf_info(ticker):
 
     return data
 
+@st.cache_data
+def dl_yf_calendar(ticker):
+    data = yf.Ticker(ticker).calendar
+
+    return data
+
 
 def calc_valuation_metrics(ticker):
     data = dl_yf_info(ticker)
@@ -42,17 +48,18 @@ def calc_valuation_metrics(ticker):
     fcf_payout = round(((dividend_rate * shares_outstanding) / fcf) * 100, 0)
     operating_margin = round(data["operatingMargins"] * 100, 2)
     profit_margin = round(data["profitMargins"] * 100, 2)
+    next_dividend = dl_yf_calendar(ticker).get("Dividend Date").strftime("%d/%m/%Y")
 
     return (price, market_cap, trailing_pe, forward_pe, fcf_yield, price_to_sales, price_to_book, cash, debt, net,
-            dividend_yield, fcf_payout, operating_margin, profit_margin)
+            dividend_yield, fcf_payout, operating_margin, profit_margin, next_dividend)
 
 
 (price, market_cap, trailing_pe, forward_pe, fcf_yield, price_to_sales, price_to_book, cash, debt, net, dividend_yield,
- fcf_payout, operating_margin, profit_margin) = calc_valuation_metrics(ticker)
+ fcf_payout, operating_margin, profit_margin, next_dividend) = calc_valuation_metrics(ticker)
 
 data = dl_yf_price(ticker, start_date=datetime.today() - timedelta(days=365 * 20), end_date=datetime.today())
 fig = px.line(data, x=data.index, y=data["Adj Close"], title=f"{ticker.upper()} {'Todo: aktueller Kurs'}")
-fig.layout.update(title_text="Stock Price", xaxis_rangeslider_visible=True)
+fig.layout.update(title_text=f"{ticker.upper()}", xaxis_rangeslider_visible=True)
 st.plotly_chart(fig)
 # Create columns
 col1, col2, col3, col4 = st.columns(4)
@@ -79,6 +86,7 @@ with col3:
     st.write("### Dividend")
     st.write(f"Dividend Yield: {dividend_yield}%")
     st.write(f"FCF Payout: {fcf_payout}%")
+    st.write(f"Next Payout: {next_dividend}")
 
 with col4:
     st.write("### Margins")
