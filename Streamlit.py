@@ -4,9 +4,10 @@ import requests
 import streamlit as st, pandas as pd, yfinance as yf
 import plotly.express as px
 
-#TODO 5: Sidebar ausprobieren (metrics und ticker eingabe)
 #TODO 6: Aktuellen Stockprice anzeigen
 #TODO 7: Quartalsanzeige
+#TODO y-Achsenbeschriftungen bei ROCE und ROIC ändern
+#TODO 8: Scorecard
 
 BASE_URL = "https://public-api.quickfs.net/v1/data/batch"
 
@@ -16,8 +17,7 @@ headers = {
 
 API_KEY = os.getenv("ALPHA_VANTAGE_KEY")
 
-
-st.title("Stock Tool")
+st.set_page_config(layout="wide")
 
 ticker = st.sidebar.text_input("Enter stock ticker:", "V")
 input_years = st.sidebar.selectbox("Select number of years to look at:", options=[10, 15, 20])
@@ -99,7 +99,6 @@ def get_graph_data_from_quickfs(ticker, years):
 
     # Make the POST request to the API
     response = requests.post(BASE_URL, json=request_body, headers=headers)
-    print(response.json())
 
     data = response.json()["data"]
 
@@ -155,9 +154,11 @@ def calc_yoy_growth_rates(input_list):
 (price, market_cap, trailing_pe, forward_pe, fcf_yield, price_to_sales, price_to_book, cash, debt, net, dividend_yield,
  fcf_payout, operating_margin, profit_margin, next_dividend) = calc_valuation_metrics(ticker)
 
+st.title(f"{ticker}")
+
 data = dl_yf_price(ticker, start_date=datetime.today() - timedelta(days=365 * 20), end_date=datetime.today())
-price_graph = px.line(data, x=data.index, y=data["Adj Close"], title=f"{ticker.upper()} {'Todo: aktueller Kurs'}")
-price_graph.layout.update(title_text=f"{ticker.upper()}", xaxis_rangeslider_visible=True)
+price_graph = px.line(data, x=data.index, y=data["Adj Close"])
+price_graph.layout.update(title_text=None, xaxis_rangeslider_visible=True, yaxis_title=None)
 st.plotly_chart(price_graph)
 
 # Create columns
@@ -194,85 +195,119 @@ with col4:
 df = get_graph_data_from_quickfs(ticker, input_years)
 
 
-one_year, two_year, five_year, ten_year = calc_avg_growth_rates(df["Revenue Growth"].tolist())
-revenue_graph = px.bar(df, x=df["Date"], y=df["Revenue"], title="Revenue (USD)", color_discrete_sequence=["#CC8124"],
+col5, col6 = st.columns(2)
+
+with col5:
+
+    one_year, two_year, five_year, ten_year = calc_avg_growth_rates(df["Revenue Growth"].tolist())
+    revenue_graph = px.bar(df, x=df["Date"], y=df["Revenue"], title="Revenue (USD)",
+                           color_discrete_sequence=["#CC8124"],
                            labels={"Date": f"1Y: {one_year}% 2Y: {two_year}% 5Y: {five_year}% 10Y: {ten_year}%"})
-revenue_graph.update_layout(title_font=dict(color="#CC8124", size=30), xaxis_title_font=dict(color="#2B824C", size=22),
+    revenue_graph.update_layout(title_font=dict(color="#CC8124", size=30),
+                                xaxis_title_font=dict(color="#2B824C", size=22),
+                                yaxis_title=None)
+    st.plotly_chart(revenue_graph)
+
+
+    one_year, two_year, five_year, ten_year = calc_avg_growth_rates(df["Free Cash Flow Growth"].tolist())
+    free_cashflow_graph = px.bar(df, x=df["Date"], y=df["Free Cash Flow"], title="Free Cash Flow (USD)",
+                                 color_discrete_sequence=["#2EBD2E"],
+                                 labels={"Date": f"1Y: {one_year}% 2Y: {two_year}% 5Y: {five_year}% 10Y: {ten_year}%"})
+    free_cashflow_graph.update_layout(title_font=dict(color="#2EBD2E", size=30),
+                                      xaxis_title_font=dict(color="#2B824C", size=22),
+                                      yaxis_title=None)
+    st.plotly_chart(free_cashflow_graph)
+
+
+    one_year, two_year, five_year, ten_year = calc_avg_growth_rates(df["EPS Diluted Growth"].tolist())
+    eps_graph = px.bar(df, x=df["Date"], y=df["EPS Diluted"], title="EPS Diluted (USD)",
+                       color_discrete_sequence=["#C0B607"],
+                       labels={"Date": f"1Y: {one_year}% 2Y: {two_year}% 5Y: {five_year}% 10Y: {ten_year}%"})
+    eps_graph.update_layout(title_font=dict(color="#C0B607", size=30), xaxis_title_font=dict(color="#2B824C", size=22),
                             yaxis_title=None)
-st.plotly_chart(revenue_graph)
+    st.plotly_chart(eps_graph)
 
 
-one_year, two_year, five_year, ten_year = calc_avg_growth_rates(df["EBITDA Growth"].tolist())
-ebitda_graph = px.bar(df, x=df["Date"], y=df["EBITDA"], title="EBITDA (USD)", color_discrete_sequence=["#71BACB"],
-                           labels={"Date": f"1Y: {one_year}% 2Y: {two_year}% 5Y: {five_year}% 10Y: {ten_year}%"})
-ebitda_graph.update_layout(title_font=dict(color="#71BACB", size=30), xaxis_title_font=dict(color="#2B824C", size=22),
-                            yaxis_title=None)
-st.plotly_chart(ebitda_graph)
+    debt_growth_list = calc_yoy_growth_rates(df["Net Debt"])
+    one_year, two_year, five_year, ten_year = calc_avg_growth_rates(debt_growth_list)
+    debt_graph = px.bar(df, x=df["Date"], y=df["Net Debt"], title=" Net Debt", color_discrete_sequence=["#C40824"],
+                        labels={"Date": f"1Y: {one_year}% 2Y: {two_year}% 5Y: {five_year}% 10Y: {ten_year}%"})
+    debt_graph.update_layout(title_font=dict(color="#C40824", size=30), xaxis_title_font=dict(color="#2B824C", size=22),
+                             yaxis_title=None)
+    st.plotly_chart(debt_graph)
 
 
-one_year, two_year, five_year, ten_year = calc_avg_growth_rates(df["Free Cash Flow Growth"].tolist())
-free_cashflow_graph = px.bar(df, x=df["Date"], y=df["Free Cash Flow"], title="Free Cash Flow (USD)", color_discrete_sequence=["#2EBD2E"],
-                           labels={"Date": f"1Y: {one_year}% 2Y: {two_year}% 5Y: {five_year}% 10Y: {ten_year}%"})
-free_cashflow_graph.update_layout(title_font=dict(color="#2EBD2E", size=30), xaxis_title_font=dict(color="#2B824C", size=22),
-                            yaxis_title=None)
-st.plotly_chart(free_cashflow_graph)
+    roce_growth_list = calc_yoy_growth_rates(df["ROCE"])
+    one_year, two_year, five_year, ten_year = calc_avg_growth_rates(roce_growth_list)
+    roce_graph = px.bar(df, x=df["Date"], y=df["ROCE"], title="ROCE", color_discrete_sequence=["#896263"],
+                        labels={"Date": f"1Y: {one_year}% 2Y: {two_year}% 5Y: {five_year}% 10Y: {ten_year}%"})
+    roce_graph.update_layout(title_font=dict(color="#896263", size=30), xaxis_title_font=dict(color="#2B824C", size=22),
+                             yaxis_title=None)
+    st.plotly_chart(roce_graph)
 
 
-one_year, two_year, five_year, ten_year = calc_avg_growth_rates(df["Net Income Growth"].tolist())
-net_income_graph = px.bar(df, x=df["Date"], y=df["Net Income"], title="Net Income (USD)", color_discrete_sequence=["#BB9E81"],
-                           labels={"Date": f"1Y: {one_year}% 2Y: {two_year}% 5Y: {five_year}% 10Y: {ten_year}%"})
-net_income_graph.update_layout(title_font=dict(color="#BB9E81", size=30), xaxis_title_font=dict(color="#2B824C", size=22),
-                            yaxis_title=None)
-st.plotly_chart(net_income_graph)
+with col6:
+
+    one_year, two_year, five_year, ten_year = calc_avg_growth_rates(df["EBITDA Growth"].tolist())
+    ebitda_graph = px.bar(df, x=df["Date"], y=df["EBITDA"], title="EBITDA (USD)", color_discrete_sequence=["#71BACB"],
+                          labels={"Date": f"1Y: {one_year}% 2Y: {two_year}% 5Y: {five_year}% 10Y: {ten_year}%"})
+    ebitda_graph.update_layout(title_font=dict(color="#71BACB", size=30),
+                               xaxis_title_font=dict(color="#2B824C", size=22),
+                               yaxis_title=None)
+    st.plotly_chart(ebitda_graph)
 
 
-one_year, two_year, five_year, ten_year = calc_avg_growth_rates(df["EPS Diluted Growth"].tolist())
-eps_graph = px.bar(df, x=df["Date"], y=df["EPS Diluted"], title="EPS Diluted (USD)", color_discrete_sequence=["#C0B607"],
-                           labels={"Date": f"1Y: {one_year}% 2Y: {two_year}% 5Y: {five_year}% 10Y: {ten_year}%"})
-eps_graph.update_layout(title_font=dict(color="#C0B607", size=30), xaxis_title_font=dict(color="#2B824C", size=22),
-                        yaxis_title=None)
-st.plotly_chart(eps_graph)
+    one_year, two_year, five_year, ten_year = calc_avg_growth_rates(df["Net Income Growth"].tolist())
+    net_income_graph = px.bar(df, x=df["Date"], y=df["Net Income"], title="Net Income (USD)",
+                              color_discrete_sequence=["#BB9E81"],
+                              labels={"Date": f"1Y: {one_year}% 2Y: {two_year}% 5Y: {five_year}% 10Y: {ten_year}%"})
+    net_income_graph.update_layout(title_font=dict(color="#BB9E81", size=30),
+                                   xaxis_title_font=dict(color="#2B824C", size=22),
+                                   yaxis_title=None)
+    st.plotly_chart(net_income_graph)
 
 
-one_year, two_year, five_year, ten_year = calc_avg_growth_rates(df["Dividends PS Growth"].tolist())
-dividends_graph = px.bar(df, x=df["Date"], y=df["Dividends"], title="Dividends (USD)", color_discrete_sequence=["#22673D"],
-                           labels={"Date": f"1Y: {one_year}% 2Y: {two_year}% 5Y: {five_year}% 10Y: {ten_year}%"})
-dividends_graph.update_layout(title_font=dict(color="#22673D", size=30), xaxis_title_font=dict(color="#2B824C", size=22),
-                            yaxis_title=None)
-st.plotly_chart(dividends_graph)
+    one_year, two_year, five_year, ten_year = calc_avg_growth_rates(df["Dividends PS Growth"].tolist())
+    dividends_graph = px.bar(df, x=df["Date"], y=df["Dividends"], title="Dividends (USD)",
+                             color_discrete_sequence=["#22673D"],
+                             labels={"Date": f"1Y: {one_year}% 2Y: {two_year}% 5Y: {five_year}% 10Y: {ten_year}%"})
+    dividends_graph.update_layout(title_font=dict(color="#22673D", size=30),
+                                  xaxis_title_font=dict(color="#2B824C", size=22),
+                                  yaxis_title=None)
+    st.plotly_chart(dividends_graph)
 
 
-debt_growth_list = calc_yoy_growth_rates(df["Net Debt"])
-one_year, two_year, five_year, ten_year = calc_avg_growth_rates(debt_growth_list)
-debt_graph = px.bar(df, x=df["Date"], y=df["Net Debt"], title=" Net Debt", color_discrete_sequence=["#C40824"],
-                           labels={"Date": f"1Y: {one_year}% 2Y: {two_year}% 5Y: {five_year}% 10Y: {ten_year}%"})
-debt_graph.update_layout(title_font=dict(color="#C40824", size=30), xaxis_title_font=dict(color="#2B824C", size=22),
-                            yaxis_title=None)
-st.plotly_chart(debt_graph)
+    one_year, two_year, five_year, ten_year = calc_avg_growth_rates(df["Shares Outstanding Growth"].tolist())
+    shares_outstanding_graph = px.bar(df, x=df["Date"], y=df["Shares Outstanding"], title="Shares Outstanding",
+                                      color_discrete_sequence=["#15A1B1"],
+                                      labels={
+                                          "Date": f"1Y: {one_year}% 2Y: {two_year}% 5Y: {five_year}% 10Y: {ten_year}%"})
+    shares_outstanding_graph.update_layout(title_font=dict(color="#15A1B1", size=30),
+                                           xaxis_title_font=dict(color="#2B824C", size=22),
+                                           yaxis_title=None)
+    st.plotly_chart(shares_outstanding_graph)
 
 
-roic_growth_list = calc_yoy_growth_rates(df["ROIC"])
-one_year, two_year, five_year, ten_year = calc_avg_growth_rates(roic_growth_list)
-roic_graph = px.bar(df, x=df["Date"], y=df["ROIC"], title="ROIC", color_discrete_sequence=["#4682B4"],
-                           labels={"Date": f"1Y: {one_year}% 2Y: {two_year}% 5Y: {five_year}% 10Y: {ten_year}%"})
-roic_graph.update_layout(title_font=dict(color="#4682B4", size=30), xaxis_title_font=dict(color="#2B824C", size=22),
-                            yaxis_title=None)
-st.plotly_chart(roic_graph)
+    roic_growth_list = calc_yoy_growth_rates(df["ROIC"])
+    one_year, two_year, five_year, ten_year = calc_avg_growth_rates(roic_growth_list)
+    roic_graph = px.bar(df, x=df["Date"], y=df["ROIC"], title="ROIC", color_discrete_sequence=["#4682B4"],
+                        labels={"Date": f"1Y: {one_year}% 2Y: {two_year}% 5Y: {five_year}% 10Y: {ten_year}%"})
+    roic_graph.update_layout(title_font=dict(color="#4682B4", size=30), xaxis_title_font=dict(color="#2B824C", size=22),
+                             yaxis_title=None)
+    st.plotly_chart(roic_graph)
 
 
-roce_growth_list = calc_yoy_growth_rates(df["ROCE"])
-one_year, two_year, five_year, ten_year = calc_avg_growth_rates(roce_growth_list)
-roce_graph = px.bar(df, x=df["Date"], y=df["ROCE"], title="ROCE", color_discrete_sequence=["#896263"],
-                           labels={"Date": f"1Y: {one_year}% 2Y: {two_year}% 5Y: {five_year}% 10Y: {ten_year}%"})
-roce_graph.update_layout(title_font=dict(color="#896263", size=30), xaxis_title_font=dict(color="#2B824C", size=22),
-                            yaxis_title=None)
-st.plotly_chart(roce_graph)
 
 
-one_year, two_year, five_year, ten_year = calc_avg_growth_rates(df["Shares Outstanding Growth"].tolist())
-shares_outstanding_graph = px.bar(df, x=df["Date"], y=df["Shares Outstanding"], title="Shares Outstanding", color_discrete_sequence=["#15A1B1"],
-                           labels={"Date": f"1Y: {one_year}% 2Y: {two_year}% 5Y: {five_year}% 10Y: {ten_year}%"})
-shares_outstanding_graph.update_layout(title_font=dict(color="#15A1B1", size=30), xaxis_title_font=dict(color="#2B824C", size=22),
-                            yaxis_title=None)
-st.plotly_chart(shares_outstanding_graph)
+
+
+
+
+
+
+
+
+
+
+
 
