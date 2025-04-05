@@ -1,4 +1,5 @@
 import os
+import time
 from datetime import datetime, timedelta
 import requests
 import streamlit as st, pandas as pd, yfinance as yf
@@ -25,22 +26,31 @@ input_years = st.sidebar.selectbox("Select number of years to look at:", options
 
 @st.cache_data
 def dl_yf_price(ticker, start_date, end_date):
-    data = yf.download(ticker, start=start_date, end=end_date)
+    data = yf.download(ticker, start=start_date, end=end_date, multi_level_index=False)
     return data
 
 
 @st.cache_data
 def dl_yf_info(ticker):
-    data = yf.Ticker(ticker).info
-
-    return data
+    data = yf.Ticker(ticker)
+    if not data:
+        print(f"No data returned for Ticker: {ticker}")
+        exit(1)
+    else:
+        print(data)
+        stock_info = data.info
+    return stock_info
 
 
 @st.cache_data
 def dl_yf_calendar(ticker):
-    data = yf.Ticker(ticker).calendar
-
-    return data
+    data = yf.Ticker(ticker)
+    if not data:
+        print(f"No data returned for Ticker: {ticker}")
+        exit(1)
+    else:
+        stock_info = data.calendar
+    return stock_info
 
 
 @st.cache_data
@@ -50,7 +60,7 @@ def calc_valuation_metrics(ticker):
     price = 0
     market_cap = round(data['marketCap'] / 1000000000, 2)
     trailing_pe = round(data["trailingPE"], 2)
-    forward_pe = round(data["forwardPE"], 2)
+    forward_pe = round(data.get("forwardPE", 0), 2)
     fcf = yf.Ticker(ticker).cashflow.loc["Free Cash Flow"].iloc[0]
     fcf_yield = round((fcf / data['marketCap']) * 100, 2)
     price_to_sales = round(data["priceToSalesTrailing12Months"], 2)
@@ -58,13 +68,13 @@ def calc_valuation_metrics(ticker):
     cash = round(data["totalCash"] / 1000000000, 2)
     debt = round(data["totalDebt"] / 1000000000, 2)
     net = round((data["totalCash"] - data["totalDebt"]) / 1000000000, 2)
-    dividend_yield = round(data["dividendYield"] * 100, 2)
-    dividend_rate = data["dividendRate"]
+    dividend_yield = round(data.get("dividendYield", 0), 2)
+    dividend_rate = data.get("dividendRate", 0)
     shares_outstanding = data["sharesOutstanding"]
     fcf_payout = round(((dividend_rate * shares_outstanding) / fcf) * 100, 0)
     operating_margin = round(data["operatingMargins"] * 100, 2)
     profit_margin = round(data["profitMargins"] * 100, 2)
-    next_dividend = dl_yf_calendar(ticker).get("Dividend Date").strftime("%d/%m/%Y")
+    next_dividend = dl_yf_calendar(ticker).get("Dividend Date").strftime("%d/%m/%Y") if dividend_rate > 0 else "N/A"
 
     return (price, market_cap, trailing_pe, forward_pe, fcf_yield, price_to_sales, price_to_book, cash, debt, net,
             dividend_yield, fcf_payout, operating_margin, profit_margin, next_dividend)
@@ -154,10 +164,10 @@ def calc_yoy_growth_rates(input_list):
 (price, market_cap, trailing_pe, forward_pe, fcf_yield, price_to_sales, price_to_book, cash, debt, net, dividend_yield,
  fcf_payout, operating_margin, profit_margin, next_dividend) = calc_valuation_metrics(ticker)
 
-st.title(f"{ticker}")
+st.title(f"{ticker.upper()}")
 
 data = dl_yf_price(ticker, start_date=datetime.today() - timedelta(days=365 * 20), end_date=datetime.today())
-price_graph = px.line(data, x=data.index, y=data["Adj Close"])
+price_graph = px.line(data, x=data.index, y=data["Close"])
 price_graph.layout.update(title_text=None, xaxis_rangeslider_visible=True, yaxis_title=None)
 st.plotly_chart(price_graph)
 
