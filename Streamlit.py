@@ -107,7 +107,7 @@ def get_graph_data_from_quickfs(ticker, years):
         }
     }
 
-    # Make the POST request to the API
+    # Send the POST request to the API
     response = requests.post(BASE_URL, json=request_body, headers=headers)
 
     data = response.json()["data"]
