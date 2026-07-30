@@ -1,0 +1,7 @@
+.venv/
+.cache/
+__pycache__/
+*.py[cod]
+watchlist.json
+watchlist.tmp
+.yfinance-cache/
